@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>toji fuck gojo</title>
+    <title>Pro Sports Stream</title>
+    <!-- Load CSS from the same repo -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -34,6 +35,7 @@
     </div>
 
     <div class="pro-iframe-box">
+      <!-- Target Iframe handled by the domain script below -->
       <iframe allowfullscreen="true" id="videoFrame" scrolling="no" src="about:blank"></iframe>
     </div>
 
@@ -42,6 +44,44 @@
     </div>
   </div>
 </div>
+
+<!-- Domain Lock & Stream Injector Script embedded right here -->
+<script>
+(function () {
+    // Authorized domains check
+    const allowedDomains = [
+        "vivosports.live",
+        "www.vivosports.live",
+        "localhost" // Keep for local testing
+    ];
+
+    const currentDomain = window.location.hostname.toLowerCase();
+    const isAuthorized = allowedDomains.some(domain => 
+        currentDomain === domain || currentDomain.endsWith("." + domain)
+    );
+
+    if (!isAuthorized) {
+        console.error("Access denied: Unauthorized domain usage.");
+        document.addEventListener("DOMContentLoaded", function() {
+            document.body.innerHTML = `
+                <div style="text-align:center; padding:80px; background:#0b0f19; color:#ef4444; font-family:sans-serif;">
+                    <h2 style="font-size:24px; margin-bottom:10px;">Access Denied</h2>
+                    <p style="color:#9ca3af;">This stream player is unauthorized for use on: <b>${currentDomain}</b></p>
+                </div>
+            `;
+        });
+        throw new Error("Unauthorized domain script execution blocked.");
+    }
+
+    // Populate stream iframe if authorized
+    document.addEventListener("DOMContentLoaded", function () {
+        const iframe = document.getElementById("videoFrame");
+        if (iframe) {
+            iframe.src = "https://YOUR_ACTUAL_STREAM_EMBED_URL"; 
+        }
+    });
+})();
+</script>
 
 </body>
 </html>
