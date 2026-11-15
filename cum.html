@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shaka Player Fullscreen Stream</title>
+  
+  <!-- Shaka Player UI Stylesheet -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@4.16.2/dist/controls.css">
+  
+  <!-- Shaka Player UI Library -->
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.16.2/dist/shaka-player.ui.min.js"></script>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html, body {
+      background: #000;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      color: #fff;
+    }
+    
+    .player {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    
+    #video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #000;
+      object-fit: contain;
+    }
+    
+    .loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      z-index: 5;
+      font-size: 14px;
+      color: #aaa;
+    }
+    
+    .loading.hide {
+      display: none;
+    }
+    
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #333;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="player" data-shaka-player>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+    </div>
+    <video
+      id="video"
+      autoplay
+      muted
+      playsinline
+      preload="auto">
+    </video>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      shaka.polyfill.installAll();
+      if (!shaka.Player.isBrowserSupported()) {
+        console.error("Browser tidak mendukung Shaka Player");
+        return;
+      }
+      
+      const video = document.getElementById("video");
+      const loading = document.getElementById("loading");
+      const player = new shaka.Player(video);
+
+      /* =========================
+         SHAKA CONFIG
+      ========================= */
+      player.configure({
+        drm: {
+          clearKeys: {
+            "7995c724a13748ed970840a8ab5bb9b3": "67bdaf1e2175b9ff682fcdf0e2354b1e"
+          }
+        },
+        streaming: {
+          bufferingGoal: 8,
+          rebufferingGoal: 2,
+          bufferBehind: 20,
+          retryParameters: {
+            maxAttempts: 4,
+            baseDelay: 500,
+            backoffFactor: 1.5,
+            fuzzFactor: 0.2,
+            timeout: 10000
+          },
+          lowLatencyMode: true,
+          inaccurateManifestTolerance: 0,
+          stallEnabled: true
+        },
+        manifest: {
+          retryParameters: {
+            maxAttempts: 4,
+            baseDelay: 500,
+            backoffFactor: 1.5,
+            fuzzFactor: 0.2,
+            timeout: 10000
+          }
+        }
+      });
+
+      /* =========================
+         STREAM
+      ========================= */
+      const streamUrl = "https://bia-cf.live.pv-cdn.net/sin-nitro/live/clients/dash/enc/q4u5nwaogz/out/v1/18de6d3e65934f3a8de4358e69eab86c/cenc.mpd";
+
+      /* =========================
+         UI OVERLAY
+      ========================= */
+      new shaka.ui.Overlay(
+        player,
+        document.querySelector(".player"),
+        video
+      );
+
+      /* =========================
+         LOAD
+      ========================= */
+      try {
+        await player.load(streamUrl);
+        loading.classList.add("hide");
+        video.muted = true;
+        try {
+          await video.play();
+        } catch (e) {
+          console.log("Autoplay menunggu interaksi user");
+        }
+      } catch (error) {
+        console.error("Gagal memuat stream:", error);
+        loading.innerHTML = "<span>Stream gagal dimuat</span>";
+      }
+
+      /* =========================
+         BUFFER RECOVERY
+      ========================= */
+      video.addEventListener("waiting", () => {
+        loading.classList.remove("hide");
+      });
+      video.addEventListener("playing", () => {
+        loading.classList.add("hide");
+      });
+      video.addEventListener("canplay", () => {
+        loading.classList.add("hide");
+      });
+
+      /* =========================
+         ERROR RECOVERY
+      ========================= */
+      player.addEventListener("error", (event) => {
+        console.error("Shaka Error:", event.detail);
+      });
+    });
+  </script>
+</body>
+</html>
